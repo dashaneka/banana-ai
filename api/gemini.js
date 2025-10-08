@@ -16,7 +16,7 @@ export default async function handler(request, response) {
     }
 
     // Use a model that supports images and text, like gemini-1.5-flash
-    const model = 'gemini-1.5-flash-latest';
+    const model = 'gemini-flash-latest';
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     // Get the payload (chat history) from the client request

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Banana AI Chat 🍌</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍌</text></svg>">
+    <!-- For production, it's recommended to install Tailwind CSS as a PostCSS plugin or use the CLI. -->
+    <!-- See: https://tailwindcss.com/docs/installation -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -75,6 +78,7 @@
             padding: 16px;
             overflow-x: auto;
             border: 1px solid #e0e0e0;
+            position: relative;
         }
          .ai-message code {
             font-family: 'Courier New', Courier, monospace;
@@ -102,14 +106,17 @@
         .copy-btn {
             opacity: 0;
             transition: opacity 0.2s ease-in-out;
+            position: absolute;
+            top: 8px;
+            right: 8px;
         }
-        .group:hover .copy-btn {
+        .group:hover .copy-btn, .ai-message pre:hover .copy-btn {
             opacity: 1;
         }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
-    <div class="w-full max-w-2xl h-[90vh] flex flex-col bg-white/70 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+    <div class="w-[80vw] max-w-6xl h-[90vh] flex flex-col bg-white/70 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
         <!-- Header -->
         <header class="bg-yellow-300 p-4 flex items-center justify-between border-b border-yellow-400">
             <div class="flex items-center space-x-3">
@@ -206,8 +213,8 @@
         }
 
         function appendMessage(sender, message, isHtml = false) {
-             const messageWrapper = document.createElement('div');
-            messageWrapper.className = `flex items-start gap-3 ${sender === 'user' ? 'justify-end' : ''}`;
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex items-start gap-3 group ${sender === 'user' ? 'justify-end' : ''}`;
 
             const icon = document.createElement('div');
             icon.className = 'w-8 h-8 rounded-full flex items-center justify-center text-lg flex-shrink-0';
@@ -219,14 +226,13 @@
                 icon.className += ' bg-yellow-400';
                 icon.textContent = '🧑‍💻';
                 messageBubble.className += ' user-message';
-                if(message) { // Only add paragraph if there is text
+                if(message) {
                     const textNode = document.createElement('p');
                     textNode.textContent = message;
                     messageBubble.appendChild(textNode);
                 }
                 messageWrapper.append(messageBubble, icon);
             } else { // AI
-                messageWrapper.classList.add('group');
                 icon.className += ' bg-yellow-400';
                 icon.textContent = '🍌';
                 messageBubble.className += ' ai-message';
@@ -235,29 +241,25 @@
                 } else {
                      messageBubble.textContent = message;
                 }
-
-                // --- Add Copy Button ---
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-btn absolute top-2 right-2 p-1.5 bg-gray-600/20 rounded-md text-gray-800 hover:bg-gray-600/40';
-                const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-                const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-                copyBtn.innerHTML = copyIcon;
-
-                copyBtn.addEventListener('click', () => {
-                    const codeBlock = messageBubble.querySelector('pre');
-                    const textToCopy = codeBlock ? codeBlock.innerText : messageBubble.innerText;
-
-                    navigator.clipboard.writeText(textToCopy).then(() => {
-                        copyBtn.innerHTML = checkIcon;
-                        setTimeout(() => {
-                            copyBtn.innerHTML = copyIcon;
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Failed to copy text: ', err);
+                
+                // Add copy buttons to pre blocks after they have been added to the DOM
+                const preElements = messageBubble.querySelectorAll('pre');
+                preElements.forEach(pre => {
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn p-1.5 bg-gray-600/20 rounded-md text-gray-800 hover:bg-gray-600/40';
+                    const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                    const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    copyBtn.innerHTML = copyIcon;
+                    
+                    copyBtn.addEventListener('click', () => {
+                        navigator.clipboard.writeText(pre.innerText).then(() => {
+                            copyBtn.innerHTML = checkIcon;
+                            setTimeout(() => { copyBtn.innerHTML = copyIcon; }, 2000);
+                        }).catch(err => { console.error('Failed to copy text: ', err); });
                     });
+                    
+                    pre.appendChild(copyBtn);
                 });
-                messageBubble.appendChild(copyBtn);
-                // --- End Copy Button ---
 
                 messageWrapper.append(icon, messageBubble);
             }
@@ -271,10 +273,8 @@
             const prompt = promptInput.value.trim();
             if (!prompt && !imageData) return;
 
-            // Display user's message
             const userMessageBubble = appendMessage('user', prompt);
 
-            // If there's an image, also display it in the chat
             if (imageData) {
                 const imgElement = document.createElement('img');
                 imgElement.src = `data:${imageData.mimeType};base64,${imageData.data}`;
@@ -295,7 +295,6 @@
                 });
             }
 
-            // Clear input and reset UI
             promptInput.value = '';
             const originalBtnContent = sendBtn.innerHTML;
             sendBtn.innerHTML = '<div class="loader"></div>';
@@ -306,15 +305,20 @@
 
             try {
                 const aiResponse = await callGeminiAPI(historyForAPI);
+                
+                // === FIX for TypeError STARTS HERE ===
                 const renderer = new marked.Renderer();
                 renderer.code = (code, lang) => {
                     const language = lang || 'plaintext';
-                    return `<pre><code class="language-${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                    // Ensure 'code' is a string before calling .replace() to prevent errors
+                    const safeCode = String(code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `<pre><code class="language-${language}">${safeCode}</code></pre>`;
                 };
                 marked.setOptions({ renderer });
+                // === FIX for TypeError ENDS HERE ===
+
                 const formattedResponse = marked.parse(aiResponse);
 
-                // Update chat history after successful API call
                 chatHistory.push({ role: "user", parts: currentUserParts });
                 chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
 
@@ -329,14 +333,10 @@
             }
         }
 
-        // --- MODIFIED FUNCTION ---
         async function callGeminiAPI(history) {
-            // Our secure Vercel serverless function endpoint
-            const apiUrl = '/api/gemini';
+            const apiUrl = '/api/gemini'; // Your Vercel endpoint
 
-            const payload = {
-                contents: history,
-            };
+            const payload = { contents: history };
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -351,15 +351,13 @@
 
             const result = await response.json();
 
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
+            if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
                 return result.candidates[0].content.parts[0].text;
             } else {
-                 if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason) {
+                if (result.candidates?.[0]?.finishReason) {
                      return `Response generation failed. Reason: ${result.candidates[0].finishReason}`;
-                 }
-                 return "I'm sorry, I couldn't generate a response. The model returned an empty result.";
+                }
+                return "I'm sorry, I couldn't generate a response. The model returned an empty result.";
             }
         }
     </script>

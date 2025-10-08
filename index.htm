@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana AI Chat 🍌</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #FFFDE7 0%, #FFF3E0 100%);
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(255, 241, 118, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 90%, rgba(255, 236, 179, 0.1) 0%, transparent 40%),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FFD54F' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        #chat-container {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        #chat-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, and Opera */
+        }
+        .user-message {
+            background-color: #FFEB3B; /* A vibrant banana yellow */
+            color: #424242;
+        }
+        .ai-message {
+            background-color: #ffffff;
+            color: #333;
+            position: relative;
+        }
+        .ai-message ul, .ai-message ol {
+            padding-left: 20px;
+            margin: 0.75rem 0;
+        }
+        .ai-message ul {
+            list-style-type: disc;
+        }
+        .ai-message ol {
+            list-style-type: decimal;
+        }
+        .ai-message li {
+            margin-bottom: 0.25rem;
+        }
+        .ai-message blockquote {
+            border-left: 4px solid #FFD54F;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #616161;
+            font-style: italic;
+        }
+        .ai-message strong {
+            font-weight: 600;
+        }
+        .ai-message table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .ai-message th, .ai-message td {
+            border: 1px solid #e0e0e0;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+        .ai-message th {
+            background-color: #f7f7f7;
+        }
+        .ai-message pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+        }
+         .ai-message code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: transparent;
+            padding: 0;
+        }
+        .ai-message pre code {
+             background-color: transparent;
+             color: #f8f8f2;
+        }
+        .loader {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            border-top: 2px solid #fff;
+            border-right: 2px solid transparent;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .copy-btn {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .group:hover .copy-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-2xl h-[90vh] flex flex-col bg-white/70 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+        <!-- Header -->
+        <header class="bg-yellow-300 p-4 flex items-center justify-between border-b border-yellow-400">
+            <div class="flex items-center space-x-3">
+                 <span class="text-3xl">🍌</span>
+                 <div>
+                    <h1 class="text-xl font-bold text-gray-800">Banana AI</h1>
+                    <p class="text-sm text-gray-600">Powered by Gemini</p>
+                 </div>
+            </div>
+        </header>
+
+        <!-- Chat Messages -->
+        <main id="chat-container" class="flex-1 p-6 space-y-4 overflow-y-auto">
+            <!-- Initial AI message -->
+            <div class="flex items-start gap-3 group">
+                <div class="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-lg flex-shrink-0">🍌</div>
+                <div class="ai-message p-3 rounded-lg shadow-md max-w-lg">
+                    <p>Hello! How can I help you today? Feel free to ask me anything or upload an image.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Image Preview -->
+        <div id="image-preview-container" class="p-4 border-t border-gray-200 hidden">
+            <div class="relative inline-block">
+                <img id="image-preview" src="" alt="Image preview" class="h-20 w-20 object-cover rounded-lg">
+                <button id="remove-image-btn" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs">&times;</button>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <footer class="p-4 border-t border-gray-200 bg-white/50">
+            <div class="flex items-center bg-gray-100 rounded-xl p-2">
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+                <button id="attach-file-btn" class="p-2 text-gray-500 hover:text-yellow-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                </button>
+                <input type="text" id="prompt-input" class="flex-1 bg-transparent px-4 py-2 text-gray-800 placeholder-gray-500 focus:outline-none" placeholder="Type your message or upload an image...">
+                <button id="send-btn" class="bg-yellow-400 text-white font-semibold py-2 px-4 rounded-lg hover:bg-yellow-500 transition-transform transform active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-send"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const attachFileBtn = document.getElementById('attach-file-btn');
+        const fileInput = document.getElementById('file-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const removeImageBtn = document.getElementById('remove-image-btn');
+
+        let imageData = null;
+        let chatHistory = [];
+
+        // --- Event Listeners ---
+        sendBtn.addEventListener('click', sendMessage);
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        attachFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        removeImageBtn.addEventListener('click', removeImage);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64String = reader.result.split(',')[1];
+                    imageData = {
+                        mimeType: file.type,
+                        data: base64String
+                    };
+                    imagePreview.src = reader.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            imageData = null;
+            fileInput.value = ''; // Reset file input
+            imagePreviewContainer.classList.add('hidden');
+            imagePreview.src = '';
+        }
+
+        function appendMessage(sender, message, isHtml = false) {
+             const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex items-start gap-3 ${sender === 'user' ? 'justify-end' : ''}`;
+
+            const icon = document.createElement('div');
+            icon.className = 'w-8 h-8 rounded-full flex items-center justify-center text-lg flex-shrink-0';
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = 'p-3 rounded-lg shadow-md max-w-lg';
+
+            if (sender === 'user') {
+                icon.className += ' bg-yellow-400';
+                icon.textContent = '🧑‍💻';
+                messageBubble.className += ' user-message';
+                if(message) { // Only add paragraph if there is text
+                    const textNode = document.createElement('p');
+                    textNode.textContent = message;
+                    messageBubble.appendChild(textNode);
+                }
+                messageWrapper.append(messageBubble, icon);
+            } else { // AI
+                messageWrapper.classList.add('group');
+                icon.className += ' bg-yellow-400';
+                icon.textContent = '🍌';
+                messageBubble.className += ' ai-message';
+                if (isHtml) {
+                    messageBubble.innerHTML = message;
+                } else {
+                     messageBubble.textContent = message;
+                }
+
+                // --- Add Copy Button ---
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-btn absolute top-2 right-2 p-1.5 bg-gray-600/20 rounded-md text-gray-800 hover:bg-gray-600/40';
+                const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+                const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                copyBtn.innerHTML = copyIcon;
+
+                copyBtn.addEventListener('click', () => {
+                    const codeBlock = messageBubble.querySelector('pre');
+                    const textToCopy = codeBlock ? codeBlock.innerText : messageBubble.innerText;
+
+                    navigator.clipboard.writeText(textToCopy).then(() => {
+                        copyBtn.innerHTML = checkIcon;
+                        setTimeout(() => {
+                            copyBtn.innerHTML = copyIcon;
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                });
+                messageBubble.appendChild(copyBtn);
+                // --- End Copy Button ---
+
+                messageWrapper.append(icon, messageBubble);
+            }
+
+            chatContainer.appendChild(messageWrapper);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageBubble;
+        }
+
+        async function sendMessage() {
+            const prompt = promptInput.value.trim();
+            if (!prompt && !imageData) return;
+
+            // Display user's message
+            const userMessageBubble = appendMessage('user', prompt);
+
+            // If there's an image, also display it in the chat
+            if (imageData) {
+                const imgElement = document.createElement('img');
+                imgElement.src = `data:${imageData.mimeType};base64,${imageData.data}`;
+                imgElement.className = 'rounded-lg max-w-xs mt-2';
+                userMessageBubble.appendChild(imgElement);
+            }
+
+            const currentUserParts = [];
+            if (prompt) {
+                currentUserParts.push({ text: prompt });
+            }
+            if (imageData) {
+                currentUserParts.push({
+                    inlineData: {
+                        mimeType: imageData.mimeType,
+                        data: imageData.data
+                    }
+                });
+            }
+
+            // Clear input and reset UI
+            promptInput.value = '';
+            const originalBtnContent = sendBtn.innerHTML;
+            sendBtn.innerHTML = '<div class="loader"></div>';
+            sendBtn.disabled = true;
+            removeImage();
+
+            const historyForAPI = [...chatHistory, { role: "user", parts: currentUserParts }];
+
+            try {
+                const aiResponse = await callGeminiAPI(historyForAPI);
+                const renderer = new marked.Renderer();
+                renderer.code = (code, lang) => {
+                    const language = lang || 'plaintext';
+                    return `<pre><code class="language-${language}">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                };
+                marked.setOptions({ renderer });
+                const formattedResponse = marked.parse(aiResponse);
+
+                // Update chat history after successful API call
+                chatHistory.push({ role: "user", parts: currentUserParts });
+                chatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+
+                appendMessage('ai', formattedResponse, true);
+            } catch (error) {
+                console.error("Error calling local API:", error);
+                appendMessage('ai', `Sorry, something went wrong. Please check the console for details. Error: ${error.message}`);
+            } finally {
+                sendBtn.innerHTML = originalBtnContent;
+                sendBtn.disabled = false;
+                promptInput.focus();
+            }
+        }
+
+        // --- MODIFIED FUNCTION ---
+        async function callGeminiAPI(history) {
+            // Our secure Vercel serverless function endpoint
+            const apiUrl = '/api/gemini';
+
+            const payload = {
+                contents: history,
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json();
+                throw new Error(`API Error: ${response.status} ${response.statusText} - ${JSON.stringify(errorBody.details || errorBody)}`);
+            }
+
+            const result = await response.json();
+
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                 if (result.candidates && result.candidates.length > 0 && result.candidates[0].finishReason) {
+                     return `Response generation failed. Reason: ${result.candidates[0].finishReason}`;
+                 }
+                 return "I'm sorry, I couldn't generate a response. The model returned an empty result.";
+            }
+        }
+    </script>
+</body>
+</html>
